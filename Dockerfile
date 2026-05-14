@@ -6,4 +6,5 @@ WORKDIR /var/www/html
 COPY composer.json ./
 RUN composer install --no-interaction --prefer-dist
 COPY . .
+RUN composer dump-autoload
 CMD ["php-fpm"]
