@@ -1,0 +1,63 @@
+name: PHP CI/CD Pipeline (Lab 9)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # Штрафное задание: разделение пайплайна
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker Image
+        run: docker compose build
+
+      # Сохраняем образ для следующего джоба
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Start Services
+        run: docker compose up -d --build
+
+      # Штрафное задание: Ожидание сервисов
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for MySQL and RabbitMQ/Kafka..."
+          sleep 20
+
+      # Штрафное задание: Проверка контейнеров
+      - name: Check running containers
+        run: docker ps -a
+
+  
+      - name: Run PHPUnit Tests
+        run: docker compose exec -T php vendor/bin/phpunit --configuration phpunit.xml
+
+      # Штрафное задание: Логирование ошибок при падении
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "❌ Tests failed! Showing logs:"
+          docker compose logs php
+          docker compose logs db_test
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
