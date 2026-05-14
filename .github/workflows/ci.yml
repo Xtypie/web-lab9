@@ -53,7 +53,6 @@ jobs:
           docker compose logs php
           docker compose logs rabbitmq
 
-      # Остановка контейнеров (всегда, независимо от результата)
       - name: Stop containers
         if: always()
         run: docker compose down -v
