@@ -7,12 +7,12 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # 🔹 ШТРАФНОЕ ЗАДАНИЕ 1: Разделение пайплайна на 2 job
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Build Docker Image
         run: docker compose build
 
@@ -26,26 +26,34 @@ jobs:
       - name: Start Services
         run: docker compose up -d --build
 
+      # 🔹 ШТРАФНОЕ ЗАДАНИЕ 2: Ожидание сервисов
       - name: Wait for services
         run: sleep 15
 
+      # 🔹 ШТРАФНОЕ ЗАДАНИЕ 3: Проверка контейнеров
       - name: Check containers
         run: docker ps
 
-      # 🔹 ВАЖНО: Сначала устанавливаем зависимости!
+      # 🔹 ШТРАФНОЕ ЗАДАНИЕ 4: Установка зависимостей
       - name: Install Composer dependencies
         run: docker compose exec -T php composer install --no-interaction
 
-      - name: Run PHPUnit Tests
-        run: docker compose exec -T php vendor/bin/phpunit --configuration phpunit.xml --testdox
+      # 🔹 ШТРАФНОЕ ЗАДАНИЕ 5: Использование переменных окружения
+      - name: Load .env.test & Run Tests
+        run: |
+          if [ -f .env.test ]; then export $(cat .env.test | xargs); fi
+          echo "✅ Env loaded: RABBITMQ_HOST=$RABBITMQ_HOST"
+          docker compose exec -T php vendor/bin/phpunit --configuration phpunit.xml --testdox
 
+      # 🔹 ШТРАФНОЕ ЗАДАНИЕ 6: Логирование ошибок при падении
       - name: Show logs on failure
         if: failure()
         run: |
-          echo "❌ Tests failed! Showing container logs:"
+          echo "❌ Tests failed! Container logs:"
           docker compose logs php
           docker compose logs rabbitmq
 
+      # Остановка контейнеров (всегда, независимо от результата)
       - name: Stop containers
         if: always()
         run: docker compose down -v
